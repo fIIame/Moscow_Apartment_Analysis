@@ -1,0 +1,197 @@
+from typing import List, Optional
+
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+
+# --- Единый стиль для всех графиков ---
+sns.set_style("whitegrid")
+plt.rcParams.update({
+    "axes.titlesize": 18,
+    "axes.labelsize": 14,
+    "xtick.labelsize": 12,
+    "ytick.labelsize": 12,
+    "legend.fontsize": 12,
+    "figure.titlesize": 22,
+    "figure.facecolor": "white",
+    "axes.facecolor": "white",
+    "axes.edgecolor": "#dddddd",
+    "axes.grid": True,
+    "grid.color": "#eaeaea",
+    "grid.linestyle": "--",
+    "grid.linewidth": 0.7
+})
+
+
+def plot_hist_boxplot(
+        data: pd.DataFrame,
+        columns: List[str],
+        hue: Optional[str] = None,
+        kde: bool = False,
+        ncols: int = 2,
+        save_path: Optional[str] = None
+) -> None:
+    """
+    Строит гистограмму и boxplot (ящик с усами) для указанных числовых признаков.
+
+    Параметры
+    ----------
+    data : pd.DataFrame
+        Исходный датафрейм с данными.
+    columns : List[str]
+        Список числовых признаков, для которых нужно построить графики.
+    hue : Optional[str], default=None
+        Переменная для раскраски данных (например, категория).
+    kde : bool, default=False
+        Отображать ли линию плотности (KDE) на гистограмме.
+    ncols : int, default=2
+        Количество столбцов подграфиков (по одному для hist и boxplot).
+    save_path : Optional[str], default=None
+        Путь для сохранения изображения. Если None — показать на экране.
+
+    Возвращает
+    ----------
+    None
+    """
+    if ncols < 2:
+        raise ValueError("ncols must be >= 2")
+
+    plot_rows = len(columns)
+    fig, axes = plt.subplots(plot_rows, ncols=ncols, figsize=(14, 5 * plot_rows))
+
+    fig.set_figheight(30)
+    fig.set_figwidth(14)
+    plt.rcParams.update({"font.size": 18})
+
+    for i, column in enumerate(columns):
+        sns.histplot(data=data, x=column, ax=axes[i, 0], kde=kde, hue=hue)
+        sns.boxplot(data=data, x=column, ax=axes[i, 1], hue=hue)
+
+        axes[i, 0].set_xlabel(column)
+        axes[i, 1].set_xlabel(column)
+        axes[i, 0].set_ylabel("Количество")
+
+    plt.suptitle("Гистограмма и ящик с усами количественных признаков", fontsize=22, y=1.01)
+    fig.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path)
+    plt.show()
+    plt.close(fig)
+
+
+def plot_categorial_pie(
+        data: pd.DataFrame,
+        columns: List[str],
+        ncols: int = 2,
+        save_path: Optional[str] = None
+) -> None:
+    """
+    Строит круговые диаграммы (pie chart) для категориальных признаков.
+
+    Параметры
+    ----------
+    data : pd.DataFrame
+        Исходный датафрейм с данными.
+    columns : List[str]
+        Список категориальных признаков для построения диаграмм.
+    ncols : int, default=2
+        Количество столбцов подграфиков.
+    save_path : Optional[str], default=None
+        Путь для сохранения изображения. Если None — показать на экране.
+
+    Возвращает
+    ----------
+    None
+    """
+    if ncols < 2:
+        raise ValueError("ncols must be >= 2")
+
+    plt.rcParams.update({
+        "axes.labelsize": 12,
+        "figure.titlesize": 12,
+        "xtick.labelsize": 10,
+        "ytick.labelsize": 10
+    })
+
+    plot_rows = int(np.ceil(len(columns) / ncols))
+    fig, axes = plt.subplots(nrows=plot_rows, ncols=ncols, figsize=(6 * ncols, 6 * plot_rows))
+
+    for idx, column in enumerate(columns):
+        i, j = divmod(idx, ncols)
+        counts = data[column].value_counts()
+        colors = sns.color_palette("pastel", n_colors=len(counts))
+        axes[i, j].pie(counts.values, labels=counts.index, colors=colors, autopct="%1.1f%%")
+        axes[i, j].set_title(column)
+
+    for ax in axes.flat[len(columns):]:
+        ax.remove()
+
+    plt.suptitle("Круговые диаграммы категориальных признаков", fontsize=22, y=1.01)
+    fig.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path)
+    plt.show()
+    plt.close(fig)
+
+
+def plot_scatterplot(
+        data: pd.DataFrame,
+        x: str,
+        ys: List[str],
+        hue: Optional[str] = None,
+        ncols: int = 2,
+        save_path: Optional[str] = None
+) -> None:
+    """
+    Строит scatterplot (диаграммы рассеяния) для нескольких признаков относительно одного x.
+
+    Параметры
+    ----------
+    data : pd.DataFrame
+        Исходный датафрейм с данными.
+    x : str
+        Название признака, который отображается по оси X.
+    ys : List[str]
+        Список признаков, которые отображаются по оси Y.
+    hue : Optional[str], default=None
+        Переменная для раскраски точек по категориям.
+    ncols : int, default=2
+        Количество столбцов подграфиков.
+    save_path : Optional[str], default=None
+        Путь для сохранения изображения. Если None — показать на экране.
+
+    Возвращает
+    ----------
+    None
+    """
+    if ncols < 2:
+        raise ValueError("ncols must be >= 2")
+
+    plot_rows = int(np.ceil(len(ys) / ncols))
+    fig, axes = plt.subplots(plot_rows, ncols=ncols, figsize=(7 * ncols, 6 * plot_rows))
+
+    fig.set_figheight(30)
+    fig.set_figwidth(14)
+    plt.rcParams.update({"font.size": 18})
+
+    for idx, y in enumerate(ys):
+        i, j = divmod(idx, ncols)
+        sns.scatterplot(data=data, x=x, y=y, ax=axes[i, j], hue=hue)
+        axes[i, j].set_xlabel(x)
+        axes[i, j].set_ylabel(y)
+        axes[i, j].set_title(f"Зависимость {y} от {x}")
+
+    for ax in axes.flat[len(ys):]:
+        ax.remove()
+
+    plt.suptitle(f"Диаграммы рассеяния относительно признака '{x}'", fontsize=22, y=1.01)
+    fig.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path)
+    plt.show()
+    plt.close(fig)
