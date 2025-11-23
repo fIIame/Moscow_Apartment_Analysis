@@ -1,6 +1,7 @@
 from typing import Optional
 
 import pandas as pd
+import numpy as np
 from scipy.stats import shapiro
 
 
@@ -72,24 +73,29 @@ def drop_outliers_grouped(
         Новый DataFrame, если inplace=False, иначе None.
     """
 
-    cleaned = []
+    cleaned_index = set()
 
+    # 1. Собираем индексы НЕ выбросов в каждой группе
     for name, group in data.groupby(group_col):
         Q1 = group[column].quantile(0.25)
         Q3 = group[column].quantile(0.75)
         IQR = Q3 - Q1
+
         lower = Q1 - k * IQR
         upper = Q3 + k * IQR
-        group_clean = group[(group[column] >= lower) & (group[column] <= upper)]
-        cleaned.append(group_clean)
 
-    result = pd.concat(cleaned).reset_index(drop=True)
+        valid_idx = group[(group[column] >= lower) & (group[column] <= upper)].index
+        cleaned_index.update(valid_idx)
 
-    if inplace:
-        data.loc[:] = result
-        return None
-    else:
-        return result
+    df = data if inplace else data.copy()
+
+    df.loc[~df.index.isin(cleaned_index), column] = np.nan
+
+    df[column] = df[column].astype(float)
+
+    if not inplace:
+        return df
+    return None
 
 
 
